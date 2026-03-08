@@ -7,10 +7,12 @@ import path from 'path';
 export async function POST(req: Request) {
   try {
     const { messages } = await req.json();
-    const userMessage = messages[messages.length - 1]?.content;
+    const userMessage = messages && messages.length > 0 && messages[messages.length - 1]?.role === 'user' 
+      ? messages[messages.length - 1]?.content 
+      : "";
 
-    // Retrieve relevant memories
-    const memories = await retrieveMemory(userMessage);
+    // Retrieve relevant memories only if there's a user message
+    const memories = userMessage ? await retrieveMemory(userMessage) : [];
     const memoryContext = memories.length > 0 
       ? `\n\nRelevant past conversation context:\n${memories.join('\n')}`
       : '';

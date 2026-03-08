@@ -1,0 +1,31 @@
+{
+  "name": "I went on ",
+  "messages": [
+    {
+      "id": 1,
+      "role": "milus",
+      "text": "Good afternoon, Rob. Did you find a quiet moment to read or paint today?",
+      "pending": false
+    },
+    {
+      "id": 2,
+      "role": "user",
+      "text": "Not really. busy day"
+    },
+    {
+      "id": 3,
+      "role": "milus",
+      "text": "Ah, I hear that. Busy days can take it out of you. Want to unwind a little? Maybe a short story, or just to sit together for a bit?",
+      "pending": false
+    },
+    {
+      "id": 4,
+      "role": "user",
+      "text": "I went on my usual book"
+    },
+    {
+      "role": "milus",
+      "text": "That's lovely, Rob—there's something special about a regular book habit. What are you reading right now?"
+    }
+  ]
+}

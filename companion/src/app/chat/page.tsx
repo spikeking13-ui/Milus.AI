@@ -54,6 +54,8 @@ function voiceStatusText(state: VoiceState): string {
   return "Hold to Speak";
 }
 
+const THINKING_MESSAGES = ["Thinking...", "Ruminating...", "Pondering...", "Reflecting...", "Considering..."];
+
 export default function ChatPage() {
   const router = useRouter();
   const recognitionRef = useRef<SpeechRecognitionType | null>(null);
@@ -68,6 +70,7 @@ export default function ChatPage() {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [isThinking, setIsThinking] = useState(false);
+  const [thinkingText, setThinkingText] = useState("Thinking...");
   const [voiceError, setVoiceError] = useState("");
 
   // Summary states
@@ -99,7 +102,8 @@ export default function ChatPage() {
         {
           id: messageIdRef.current++,
           role: "milus",
-          text: `Hi ${name}. I am here with you. What would you like to talk through today?`,
+          text: "",
+          pending: true,
         },
       ]);
 
@@ -111,20 +115,27 @@ export default function ChatPage() {
 
   const handleConversationStarter = async (name: string, hobbies: string) => {
     setIsThinking(true);
+    setThinkingText(THINKING_MESSAGES[Math.floor(Math.random() * THINKING_MESSAGES.length)]);
     setVoiceState("thinking");
       // TODO: Add customization to user JSON
     try {
+      const profileRes = await fetch("/usr/data/user_profile.json", { cache: "no-store" });
+      const userProfile = profileRes.ok ? await profileRes.json() : null;
+
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           messages: [
-            { 
-              role: "system", 
-              content: `You are Milus. The user ${name} just opened the chat. Their hobbies are: ${hobbies}. 
-              Start the conversation with a warm, personalized greeting and a question or suggestion related to their hobbies or how they are feeling.` 
+            {
+              role: "system",
+              content: `You are Milus, a warm, human-like companion. 
+              The user ${name} just opened the chat. Their hobbies: ${hobbies}.
+              
+              Task: Start with a very brief, warm greeting and one thoughtful, open-ended question or suggestion based on their interests or how they might be feeling. 
+              Be concise, natural, and present. Avoid sounding like an AI or a script.`
             }
-          ] 
+          ]
         }),
       });
 
@@ -133,9 +144,8 @@ export default function ChatPage() {
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
       let assistantText = "";
-      const pendingId = messageIdRef.current++;
-      setMessages(prev => [...prev, { id: pendingId, role: "milus", text: "", pending: true }]);
-
+      const pendingId = messages[0]?.id || 1; // Use the ID of the first message we initialized
+      
       while (true) {
         const { done, value } = await reader!.read();
         if (done) break;
@@ -146,6 +156,7 @@ export default function ChatPage() {
       speak(assistantText);
     } catch (error) {
       console.error(error);
+      setMessages(prev => prev.map(m => m.pending ? { ...m, text: `Hi ${name}. I am here with you. What would you like to talk through today?`, pending: false } : m));
     } finally {
       setIsThinking(false);
     }
@@ -181,6 +192,7 @@ export default function ChatPage() {
     setMessages(prev => [...prev, userMsg, { id: pendingId, role: "milus", text: "", pending: true }]);
     
     setIsThinking(true);
+    setThinkingText(THINKING_MESSAGES[Math.floor(Math.random() * THINKING_MESSAGES.length)]);
     setVoiceState("thinking");
 
     try {
@@ -289,7 +301,11 @@ export default function ChatPage() {
             {messages.map((m) => (
               <div key={m.id} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
                 <div className={m.role === "user" ? STYLES.bubbleUser : STYLES.bubbleAgent}>
-                  {m.pending && !m.text ? "..." : m.text}
+                  {m.pending && !m.text ? (
+                    <span className="italic text-stone-500">{thinkingText}</span>
+                  ) : (
+                    m.text
+                  )}
                 </div>
               </div>
             ))}

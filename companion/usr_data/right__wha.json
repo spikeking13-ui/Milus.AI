@@ -1,0 +1,53 @@
+{
+  "name": "Right, wha",
+  "messages": [
+    {
+      "id": 1,
+      "role": "milus",
+      "text": "Good afternoon, Rob. Did you find a quiet moment to read or paint today?",
+      "pending": false
+    },
+    {
+      "id": 2,
+      "role": "user",
+      "text": "Not really. busy day"
+    },
+    {
+      "id": 3,
+      "role": "milus",
+      "text": "Ah, I hear that. Busy days can take it out of you. Want to unwind a little? Maybe a short story, or just to sit together for a bit?",
+      "pending": false
+    },
+    {
+      "id": 4,
+      "role": "user",
+      "text": "I went on my usual book"
+    },
+    {
+      "id": 5,
+      "role": "milus",
+      "text": "That's lovely, Rob—there's something special about a regular book habit. What are you reading right now?",
+      "pending": false
+    },
+    {
+      "id": 6,
+      "role": "user",
+      "text": "You remember..."
+    },
+    {
+      "id": 7,
+      "role": "milus",
+      "text": "You're right, I'm drawing a blank. Remind me? It's been a while since we talked about your book.",
+      "pending": false
+    },
+    {
+      "id": 8,
+      "role": "user",
+      "text": "Right, what's my friend's name?"
+    },
+    {
+      "role": "milus",
+      "text": "I remember you mentioned your friend Mabel, who you talk to weekly. Is that who you're thinking of?"
+    }
+  ]
+}

@@ -12,8 +12,8 @@ export async function POST(req: NextRequest) {
     const memories = await retrieveMemory(
       query,
       rerankInstruction || 'Relevant conversation history',
-      queryThreshold !== undefined ? queryThreshold : 0.6,
-      rerankThreshold !== undefined ? rerankThreshold : 0.6
+      queryThreshold !== undefined ? queryThreshold : 0.7,
+      rerankThreshold !== undefined ? rerankThreshold : 0.7
     );
 
     return NextResponse.json({ success: true, memories });

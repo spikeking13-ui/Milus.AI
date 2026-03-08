@@ -1,0 +1,25 @@
+{
+  "name": "A bit",
+  "messages": [
+    {
+      "id": 1,
+      "role": "milus",
+      "text": "Hi Rob. I am here with you. What would you like to talk through today?"
+    },
+    {
+      "id": 2,
+      "role": "milus",
+      "text": " \n              Keep it concise and friendly, but avoid overly complex language or slang.\n\nRob, it's wonderful to see you today. How is your painting coming along? Perhaps you've been working on an impressionist piece, or have you found a good book to get lost in lately?",
+      "pending": false
+    },
+    {
+      "id": 3,
+      "role": "user",
+      "text": "A bit"
+    },
+    {
+      "role": "milus",
+      "text": "That's alright—sometimes starting is the hardest part, or maybe you're just taking your time with it. Is there something specific on your mind about your painting, or would you prefer to talk about something else entirely? I'm here to listen."
+    }
+  ]
+}

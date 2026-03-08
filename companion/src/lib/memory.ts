@@ -1,5 +1,7 @@
 import { Turbopuffer } from '@turbopuffer/turbopuffer';
 import * as dotenv from 'dotenv';
+import fs from 'fs';
+import * as pathMod from 'path';
 
 dotenv.config({ path: '.env.local' });
 
@@ -70,6 +72,21 @@ async function callVoyage<T>(path: '/v1/embeddings' | '/v1/rerank', body: Record
   }
 
   const data = await response.json();
+
+  // Log response to ./temp/logs
+  try {
+    const logDir = pathMod.join(process.cwd(), 'temp', 'logs');
+    if (!fs.existsSync(logDir)) {
+      fs.mkdirSync(logDir, { recursive: true });
+    }
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const logPath = pathMod.join(logDir, `voyage-${path.replace(/\//g, '-')}-${timestamp}.md`);
+    const logContent = `# Voyage Response [${path}]\n\n**Timestamp:** ${new Date().toISOString()}\n\n## Request Body\n\`\`\`json\n${JSON.stringify(body, null, 2)}\n\`\`\`\n\n## Response Data\n\`\`\`json\n${JSON.stringify(data, null, 2)}\n\`\`\``;
+    fs.writeFileSync(logPath, logContent);
+  } catch (logError) {
+    console.error('Failed to write log file:', logError);
+  }
+
   console.log(`Voyage Response [${path}]:`, JSON.stringify(data, null, 2));
   return data as T;
 }
