@@ -213,11 +213,11 @@ export default function CaregiverPage() {
             {/* Mood Card */}
             <div className={STYLES.card}>
               <p className={STYLES.cardTitle}>Mood Today: {moodTodayLabel}</p>
-              <div className="h-32 w-full bg-stone-50 rounded-xl flex items-end p-2 gap-1">
+              <div className="h-32 w-full rounded-xl border border-stone-200 bg-stone-50 flex items-end p-2 gap-1">
                 {mood.map((p, i) => (
                   <div 
                     key={i} 
-                    className="flex-1 bg-emerald-500 rounded-t-sm transition-all" 
+                    className="flex-1 rounded-t-sm bg-emerald-600 transition-all" 
                     style={{ height: `${p.score}%` }}
                     title={`${p.day}: ${p.score}`}
                   />
@@ -230,7 +230,7 @@ export default function CaregiverPage() {
               <p className={STYLES.cardTitle}>Recent Topics</p>
               <div className="flex flex-wrap gap-2">
                 {topics.map((t, i) => (
-                  <span key={i} className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-sm font-medium">
+                  <span key={i} className="rounded-full border border-stone-300 bg-white px-3 py-1 text-sm font-medium text-stone-800">
                     {t}
                   </span>
                 ))}
@@ -242,8 +242,8 @@ export default function CaregiverPage() {
               <p className={STYLES.cardTitle}>Alerts</p>
               <div className="space-y-2">
                 {alerts.map((a, i) => (
-                  <div key={i} className="p-3 bg-red-50 border border-red-100 text-red-700 rounded-xl text-sm flex items-center gap-2">
-                    <span className="h-2 w-2 bg-red-500 rounded-full animate-pulse" />
+                  <div key={i} className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                    <span className="h-2 w-2 rounded-full bg-amber-600 animate-pulse" />
                     {a}
                   </div>
                 ))}
@@ -253,12 +253,10 @@ export default function CaregiverPage() {
 
           {/* Caregiver Contact Card */}
           <div className={STYLES.card + " mt-6"}>
-            <p className={STYLES.cardTitle}>Caregiver Contact</p>
+            <p className={STYLES.cardTitle}>Caregiver Name</p>
             {caregivers.map((c, i) => (
               <div key={i} className="flex flex-wrap gap-6 text-stone-700">
                 <div><span className="text-stone-400 text-xs block uppercase">Name</span> {c.name}</div>
-                <div><span className="text-stone-400 text-xs block uppercase">Email</span> {c.email}</div>
-                <div><span className="text-stone-400 text-xs block uppercase">Phone</span> {c.phone}</div>
               </div>
             ))}
           </div>
