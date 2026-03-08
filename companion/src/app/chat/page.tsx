@@ -289,11 +289,11 @@ export default function ChatPage() {
           <div className={STYLES.card}>
             <p className={STYLES.cardTitle}>Your Companion Summary</p>
             <div className={STYLES.gridTwoCol}>
-              <div className="rounded-xl bg-stone-50 px-3 py-2 text-sm text-stone-800">Name: <span className="font-medium">{summaryName}</span></div>
-              <div className="rounded-xl bg-stone-50 px-3 py-2 text-sm text-stone-800">Key Person: <span className="font-medium">{summaryPerson}</span></div>
-              <div className="rounded-xl bg-stone-50 px-3 py-2 text-sm text-stone-800">Interest: <span className="font-medium">{summaryInterest}</span></div>
-              <div className="rounded-xl bg-stone-50 px-3 py-2 text-sm text-stone-800">Daily Check-In: <span className="font-medium">{summaryCheckIn}</span></div>
-              <div className="rounded-xl bg-stone-50 px-3 py-2 text-sm text-stone-800 sm:col-span-2">Caregiver: <span className="font-medium">{summaryCaregiver}</span></div>
+              <div className="rounded-xl border border-amber-100 bg-amber-50/70 px-3 py-2 text-sm text-stone-800">Name: <span className="font-medium">{summaryName}</span></div>
+              <div className="rounded-xl border border-amber-100 bg-amber-50/70 px-3 py-2 text-sm text-stone-800">Key Person: <span className="font-medium">{summaryPerson}</span></div>
+              <div className="rounded-xl border border-amber-100 bg-amber-50/70 px-3 py-2 text-sm text-stone-800">Interest: <span className="font-medium">{summaryInterest}</span></div>
+              <div className="rounded-xl border border-amber-100 bg-amber-50/70 px-3 py-2 text-sm text-stone-800">Daily Check-In: <span className="font-medium">{summaryCheckIn}</span></div>
+              <div className="rounded-xl border border-amber-100 bg-amber-50/70 px-3 py-2 text-sm text-stone-800 sm:col-span-2">Caregiver: <span className="font-medium">{summaryCaregiver}</span></div>
             </div>
           </div>
 
