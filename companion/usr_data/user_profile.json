@@ -1,0 +1,17 @@
+{
+  "fullName": "Robert Renalis",
+  "preferredName": "Rob",
+  "age": "90",
+  "email": "robr@hotmail.mail",
+  "relationships": [
+    {
+      "name": "Mabel",
+      "relation": "friend",
+      "frequency": "weekly"
+    }
+  ],
+  "userBirthday": "10/01/1935",
+  "hobbies": "painting impressionist pieces, reading",
+  "caregiverName": "Berryesa",
+  "checkInTime": "anytime"
+}

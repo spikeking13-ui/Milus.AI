@@ -42,6 +42,14 @@ const MEMORY_SCHEMA = {
     type: 'string' as const,
     full_text_search: true,
   },
+  role: {
+    type: 'string' as const,
+    filterable: true,
+  },
+  created_at: {
+    type: 'string' as const,
+    filterable: true,
+  },
 };
 
 async function callVoyage<T>(path: '/v1/embeddings' | '/v1/rerank', body: Record<string, unknown>) {
@@ -163,31 +171,32 @@ export async function retrieveMemory(
   const result = await ns.query(queryPayload);
   console.log('Turbopuffer Query Result:', JSON.stringify(result, null, 2));
 
-  const documents = (result.rows ?? [])
+  const documentsWithMetadata = (result.rows ?? [])
     .filter((row) => {
       const distance = typeof row.$dist === 'number' ? row.$dist : Number.POSITIVE_INFINITY;
       const isWithinThreshold = distance <= 1 - queryThreshold;
       console.log(`Row distance: ${distance}, Threshold: ${1 - queryThreshold}, Keep: ${isWithinThreshold}`);
       return isWithinThreshold;
     })
-    .map((row) => (typeof row.text === 'string' ? row.text : ''))
+    .map((row) => {
+      const text = typeof row.text === 'string' ? row.text : '';
+      const role = typeof row.role === 'string' ? row.role : 'unknown';
+      const date = typeof row.created_at === 'string' ? row.created_at : 'unknown';
+      return `[${date}] ${role.toUpperCase()}: ${text}`;
+    })
     .filter(Boolean);
 
-  console.log(`Documents after filtering: ${documents.length}`);
+  console.log(`Documents after filtering: ${documentsWithMetadata.length}`);
 
-  if (documents.length === 0) {
+  if (documentsWithMetadata.length === 0) {
     console.log('No documents found after filtering, returning empty array.');
     return [];
   }
 
-  console.log("uhygtf");
-
-  const reranked = await rerankMemories(`${rerankInstruction}: ${query}`, documents);
-
-
+  const reranked = await rerankMemories(`${rerankInstruction}: ${query}`, documentsWithMetadata);
 
   return reranked
     .filter((item) => (item.relevance_score ?? 0) >= rerankThreshold)
-    .map((item) => documents[item.index ?? -1])
+    .map((item) => documentsWithMetadata[item.index ?? -1])
     .filter((item): item is string => Boolean(item));
 }

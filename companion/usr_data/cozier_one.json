@@ -1,0 +1,25 @@
+{
+  "name": "Cozier one",
+  "messages": [
+    {
+      "id": 2,
+      "role": "milus",
+      "text": "Hi Rob. I am here with you. What would you like to talk through today?"
+    },
+    {
+      "id": 3,
+      "role": "milus",
+      "text": "Hello Rob, it’s great to see you again. I heard you’ve been busy with your impressionist painting and reading lately — which sounds like a wonderful way to spend your time.  \n\nAre you feeling inspired to pick up the brush today, or is this more of a cozy reading afternoon?",
+      "pending": false
+    },
+    {
+      "id": 4,
+      "role": "user",
+      "text": "Cozier one. Just read about the grapes of wrath"
+    },
+    {
+      "role": "milus",
+      "text": "That sounds like a perfect kind of book for a quiet afternoon. *The Grapes of Wrath* is such a powerful novel—so vivid and full of feeling.\n\nDoes it remind you of any particular time in your own life? Or maybe bring back some memories or stories?"
+    }
+  ]
+}
