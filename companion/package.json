@@ -9,9 +9,14 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@turbopuffer/turbopuffer": "^1.18.0",
+    "dotenv": "^17.3.1",
     "next": "16.1.6",
+    "node-fetch": "^2.7.0",
+    "openai": "^6.27.0",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "voyageai": "^0.2.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
