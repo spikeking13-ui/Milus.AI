@@ -19,14 +19,26 @@ export async function POST(req: Request) {
     let userProfileContext = '';
     const usrDataDir = path.join(process.cwd(), 'usr_data');
     const profilePath = path.join(usrDataDir, 'user_profile.json');
-    if (fs.existsSync(profilePath)) {
-      const profileData = fs.readFileSync(profilePath, 'utf8');
-      userProfileContext = `\n\nUser Profile JSON:\n<USR_JSON>\n${profileData}\n</USR_JSON>`;
+    
+    try {
+      if (fs.existsSync(profilePath)) {
+        const profileData = fs.readFileSync(profilePath, 'utf8');
+        userProfileContext = `\n\nUser Profile JSON:\n<USR_JSON>\n${profileData}\n</USR_JSON>`;
+      }
+    } catch (err) {
+      console.error("Error reading user profile:", err);
     }
 
     // Read global system message
+    let systemMessageContent = 'You are Milus, a warm, human-like companion.';
     const systemMessagePath = path.join(process.cwd(), 'src/lib/system-message.md');
-    const systemMessageContent = fs.readFileSync(systemMessagePath, 'utf8');
+    try {
+      if (fs.existsSync(systemMessagePath)) {
+        systemMessageContent = fs.readFileSync(systemMessagePath, 'utf8');
+      }
+    } catch (err) {
+      console.error("Error reading system message:", err);
+    }
 
     const fullMessages = [
       { role: 'system', content: systemMessageContent + userProfileContext + memoryContext },

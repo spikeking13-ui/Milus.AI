@@ -189,16 +189,7 @@ export default function ChatPage() {
         headers: { "Content-Type": "application/json" },
         signal: controller.signal,
         body: JSON.stringify({
-          messages: [
-            {
-              role: "system",
-              content: `You are Milus, a warm, human-like companion. 
-              The user ${name} just opened the chat. Their hobbies: ${hobbies}.
-              
-              Task: Start with a very brief, warm greeting and one thoughtful, open-ended question or suggestion based on their interests or how they might be feeling. 
-              Be concise, natural, and present. Avoid sounding like an AI or a script.`
-            }
-          ]
+          messages: [] // Empty messages array, the API will inject the system prompt and user profile
         }),
       });
 
