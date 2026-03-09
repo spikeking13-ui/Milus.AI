@@ -8,18 +8,25 @@ type ChatMode = "companion" | "cooking" | "creative" | "language";
 type VoiceState = "idle" | "listening" | "thinking" | "speaking";
 
 type Message = {
-  id: number;
+  id: string;
   role: "milus" | "user";
   text: string;
   pending?: boolean;
+};
+
+type ChatSession = {
+  id: string;
+  title: string;
+  messages: Message[];
+  createdAt: string;
 };
 
 type SpeechRecognitionType = {
   continuous: boolean;
   interimResults: boolean;
   lang: string;
-  onresult: ((event: SpeechResultEvent) => void) | null;
-  onerror: (() => void) | null;
+  onresult: ((event: any) => void) | null;
+  onerror: ((event: any) => void) | null;
   onend: (() => void) | null;
   start: () => void;
   stop: () => void;
@@ -54,13 +61,12 @@ function voiceStatusText(state: VoiceState): string {
   return "Hold to Speak";
 }
 
-const THINKING_MESSAGES = ["Thinking...", "Ruminating...", "Pondering...", "Reflecting...", "Considering..."];
+const THINKING_MESSAGES = ["Thinking...", "Ruminating...", "Pondering...", "Reflecting..."];
 
 export default function ChatPage() {
   const router = useRouter();
   const recognitionRef = useRef<SpeechRecognitionType | null>(null);
   const transcriptRef = useRef("");
-  const messageIdRef = useRef(1);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   const [preferredName, setPreferredName] = useState("friend");
@@ -72,6 +78,9 @@ export default function ChatPage() {
   const [isThinking, setIsThinking] = useState(false);
   const [thinkingText, setThinkingText] = useState("Thinking...");
   const [voiceError, setVoiceError] = useState("");
+  const [sessions, setSessions] = useState<ChatSession[]>([]);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
   // Summary states
   const [summaryName, setSummaryName] = useState("Not set");
@@ -80,10 +89,23 @@ export default function ChatPage() {
   const [summaryCheckIn, setSummaryCheckIn] = useState("08:00");
   const [summaryCaregiver, setSummaryCaregiver] = useState("Not set");
 
+  const abortControllerRef = useRef<AbortController | null>(null);
+
   useEffect(() => {
     const checkProfile = async () => {
-      const res = await fetch("/api/usr_data?type=profile");
-      const profile = await res.json();
+      // Try local storage first
+      let profile = null;
+      const localProfile = localStorage.getItem("milus_user_profile");
+      if (localProfile) {
+        profile = JSON.parse(localProfile);
+      } else {
+        const res = await fetch("/api/usr_data?type=profile");
+        profile = await res.json();
+        if (profile) {
+          localStorage.setItem("milus_user_profile", JSON.stringify(profile));
+        }
+      }
+
       if (!profile) {
         router.replace("/onboarding");
         return;
@@ -98,33 +120,76 @@ export default function ChatPage() {
       setSummaryCaregiver(profile.caregiverName || "Not set");
       setVoiceMode(profile.voiceMode || "speak");
 
-      setMessages([
-        {
-          id: messageIdRef.current++,
-          role: "milus",
-          text: "",
-          pending: true,
-        },
-      ]);
-
-      // Trigger conversation starter
-      handleConversationStarter(name, profile.hobbies);
+      // Load sessions
+      const savedSessions = localStorage.getItem("milus_chat_sessions");
+      if (savedSessions) {
+        const parsed = JSON.parse(savedSessions);
+        setSessions(parsed);
+        if (parsed.length > 0) {
+          // Load the most recent session instead of starting a new one
+          loadSession(parsed[0]);
+          return;
+        }
+      }
+      
+      startNewChat(name, profile.hobbies);
     };
     checkProfile();
   }, [router]);
 
-  const handleConversationStarter = async (name: string, hobbies: string) => {
+  const startNewChat = (name: string, hobbies: string) => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const newId = crypto.randomUUID();
+    setCurrentSessionId(newId);
+    const initialMessage: Message = {
+      id: crypto.randomUUID(),
+      role: "milus",
+      text: "",
+      pending: true,
+    };
+    setMessages([initialMessage]);
+    handleConversationStarter(name, hobbies, newId);
+  };
+
+  const saveSession = (sessionId: string, msgs: Message[]) => {
+    setSessions(prev => {
+      const existing = prev.find(s => s.id === sessionId);
+      let updated;
+      if (existing) {
+        updated = prev.map(s => s.id === sessionId ? { ...s, messages: msgs } : s);
+      } else {
+        const firstUserMsg = msgs.find(m => m.role === "user")?.text || "New Chat";
+        const title = firstUserMsg.slice(0, 30) + (firstUserMsg.length > 30 ? "..." : "");
+        updated = [{ id: sessionId, title, messages: msgs, createdAt: new Date().toISOString() }, ...prev];
+      }
+      localStorage.setItem("milus_chat_sessions", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const loadSession = (session: ChatSession) => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    setCurrentSessionId(session.id);
+    setMessages(session.messages);
+    setIsHistoryOpen(false);
+  };
+
+  const handleConversationStarter = async (name: string, hobbies: string, sessionId: string) => {
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setIsThinking(true);
     setThinkingText(THINKING_MESSAGES[Math.floor(Math.random() * THINKING_MESSAGES.length)]);
     setVoiceState("thinking");
-      // TODO: Add customization to user JSON
     try {
-      const profileRes = await fetch("/usr/data/user_profile.json", { cache: "no-store" });
-      const userProfile = profileRes.ok ? await profileRes.json() : null;
-
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
         body: JSON.stringify({
           messages: [
             {
@@ -144,19 +209,33 @@ export default function ChatPage() {
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
       let assistantText = "";
-      const pendingId = messages[0]?.id || 1; // Use the ID of the first message we initialized
       
       while (true) {
         const { done, value } = await reader!.read();
-        if (done) break;
-        const chunk = decoder.decode(value);
+        const chunk = decoder.decode(value, { stream: !done });
         assistantText += chunk;
-        setMessages(prev => prev.map(m => m.id === pendingId ? { ...m, text: assistantText, pending: false } : m));
+        
+        setMessages(prev => {
+          const updated = prev.map(m => m.pending ? { ...m, text: assistantText, pending: done ? false : true } : m);
+          if (done) saveSession(sessionId, updated);
+          return updated;
+        });
+
+        if (done) break;
       }
       speak(assistantText);
-    } catch (error) {
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        console.log('Conversation starter aborted');
+        return;
+      }
       console.error(error);
-      setMessages(prev => prev.map(m => m.pending ? { ...m, text: `Hi ${name}. I am here with you. What would you like to talk through today?`, pending: false } : m));
+      const fallback = `Hi ${name}. I am here with you. What would you like to talk through today?`;
+      setMessages(prev => {
+        const updated = prev.map(m => m.pending ? { ...m, text: fallback, pending: false } : m);
+        saveSession(sessionId, updated);
+        return updated;
+      });
     } finally {
       setIsThinking(false);
     }
@@ -187,9 +266,10 @@ export default function ChatPage() {
     setVoiceError("");
     setMode(inferMode(text));
 
-    const userMsg: Message = { id: messageIdRef.current++, role: "user", text };
-    const pendingId = messageIdRef.current++;
-    setMessages(prev => [...prev, userMsg, { id: pendingId, role: "milus", text: "", pending: true }]);
+    const userMsg: Message = { id: crypto.randomUUID(), role: "user", text };
+    const pendingId = crypto.randomUUID();
+    const newMessages: Message[] = [...messages, userMsg, { id: pendingId, role: "milus", text: "", pending: true }];
+    setMessages(newMessages);
     
     setIsThinking(true);
     setThinkingText(THINKING_MESSAGES[Math.floor(Math.random() * THINKING_MESSAGES.length)]);
@@ -200,7 +280,7 @@ export default function ChatPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
-          messages: [...messages, userMsg].map(m => ({ 
+          messages: newMessages.filter(m => !m.pending).map(m => ({ 
             role: m.role === "milus" ? "assistant" : "user", 
             content: m.text 
           })) 
@@ -215,26 +295,19 @@ export default function ChatPage() {
 
       while (true) {
         const { done, value } = await reader!.read();
-        if (done) break;
-        const chunk = decoder.decode(value);
+        const chunk = decoder.decode(value, { stream: !done });
         assistantText += chunk;
-        setMessages(prev => prev.map(m => m.id === pendingId ? { ...m, text: assistantText, pending: false } : m));
+        
+        setMessages(prev => {
+          const updated = prev.map(m => m.id === pendingId ? { ...m, text: assistantText, pending: done ? false : true } : m);
+          if (done && currentSessionId) saveSession(currentSessionId, updated);
+          return updated;
+        });
+
+        if (done) break;
       }
 
       speak(assistantText);
-
-      // Save conversation
-      const convName = text.slice(0, 10) || "chat";
-      await fetch("/api/usr_data", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          type: "conversation", 
-          name: convName, 
-          data: { name: convName, messages: [...messages, userMsg, { role: "milus", text: assistantText }] } 
-        }),
-      });
-
     } catch (error) {
       console.error(error);
       setVoiceError("Sorry, I had trouble connecting. Please try again.");
@@ -250,19 +323,61 @@ export default function ChatPage() {
       setVoiceError("Voice input not supported in this browser.");
       return;
     }
+    
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {}
+    }
+
     recognitionRef.current = new SpeechRecognition();
     recognitionRef.current!.continuous = true;
+    recognitionRef.current!.interimResults = true;
+    recognitionRef.current!.lang = 'en-US';
+
+    transcriptRef.current = "";
+
     recognitionRef.current!.onresult = (e: any) => {
-      transcriptRef.current = Array.from(e.results).map((r: any) => r[0].transcript).join("");
+      let current = "";
+      for (let i = 0; i < e.results.length; i++) {
+        current += e.results[i][0].transcript;
+      }
+      transcriptRef.current = current;
+      setInput(current); // Show live transcript in input
     };
+
+    recognitionRef.current!.onerror = (event: any) => {
+      console.error("Speech recognition error", event.error);
+      if (event.error !== 'aborted') {
+        setVoiceError(`Error: ${event.error}`);
+        setVoiceState("idle");
+      }
+    };
+
+    recognitionRef.current!.onend = () => {
+      // Only reset if we're not in the middle of a send
+      if (voiceState === "listening") {
+        setVoiceState("idle");
+      }
+    };
+
     setVoiceState("listening");
-    recognitionRef.current!.start();
+    try {
+      recognitionRef.current!.start();
+    } catch (e) {
+      console.error("Failed to start recognition", e);
+      setVoiceState("idle");
+    }
   };
 
   const stopHoldToSpeak = () => {
-    if (recognitionRef.current) {
+    if (recognitionRef.current && voiceState === "listening") {
+      setVoiceState("idle");
       recognitionRef.current.stop();
-      if (transcriptRef.current) handleSend(transcriptRef.current);
+      const finalTranscript = transcriptRef.current;
+      if (finalTranscript.trim()) {
+        handleSend(finalTranscript);
+      }
       transcriptRef.current = "";
     }
   };
@@ -270,23 +385,56 @@ export default function ChatPage() {
   const modeConfig = useMemo(() => modeMeta[mode], [mode]);
 
   return (
-    <div className={STYLES.pageWrapper}>
-      <header className={STYLES.header}>
-        <div className="flex items-center gap-3">
-          <h1 className={STYLES.title}>Milus Chat 🌻</h1>
-          <span className={`rounded-full px-3 py-1 text-xs font-medium ${modeConfig.bg}`}>
-            {modeConfig.emoji} {modeConfig.label}
-          </span>
+    <div className="flex h-screen bg-white overflow-hidden font-sans text-slate-900">
+      {/* History Sidebar */}
+      <div className={`fixed inset-y-0 left-0 z-50 w-80 bg-slate-50 border-r border-slate-200 transform transition-transform duration-300 ease-in-out ${isHistoryOpen ? 'translate-x-0' : '-translate-x-full'} lg:relative lg:translate-x-0`}>
+        <div className="flex flex-col h-full p-4">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-semibold text-slate-800">History</h2>
+            <button 
+              onClick={() => startNewChat(preferredName, summaryInterest)}
+              className="p-2 bg-emerald-500 text-white rounded-full hover:bg-emerald-600 transition-colors"
+              title="New Chat"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto space-y-2">
+            {sessions.map(session => (
+              <button
+                key={session.id}
+                onClick={() => loadSession(session)}
+                className={`w-full text-left p-3 rounded-xl transition-colors ${currentSessionId === session.id ? 'bg-emerald-100 text-emerald-900' : 'hover:bg-slate-200 text-slate-600'}`}
+              >
+                <div className="font-medium truncate">{session.title}</div>
+                <div className="text-xs opacity-60">{new Date(session.createdAt).toLocaleDateString()}</div>
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="flex items-center gap-4">
-          <p className={STYLES.subtitle}>{voiceStatusText(voiceState)}</p>
-          <button onClick={() => router.push("/caregiver")} className={STYLES.buttonSecondary}>Caregiver View</button>
-        </div>
-      </header>
+      </div>
+
+      {/* Main Chat Area */}
+      <div className="flex-1 flex flex-col relative">
+        <header className={STYLES.header}>
+          <div className="flex items-center gap-3">
+            <button onClick={() => setIsHistoryOpen(!isHistoryOpen)} className="lg:hidden p-2 -ml-2 text-slate-500">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+            </button>
+            <h1 className={STYLES.title}>Milus Chat 🌻</h1>
+            <span className={`rounded-full px-3 py-1 text-xs font-medium ${modeConfig.bg}`}>
+              {modeConfig.emoji} {modeConfig.label}
+            </span>
+          </div>
+          <div className="flex items-center gap-4">
+            {/* <p className={STYLES.subtitle}>{voiceStatusText(voiceState)}</p> */}
+            <button onClick={() => router.push("/caregiver")} className={STYLES.buttonSecondary}>Caregiver View</button>
+          </div>
+        </header>
 
       <main className={STYLES.mainContent}>
         <div className={STYLES.containerMaxWidth}>
-          <div className={STYLES.card}>
+          {/* <div className={STYLES.card}>
             <p className={STYLES.cardTitle}>Your Companion Summary</p>
             <div className={STYLES.gridTwoCol}>
               <div className="rounded-xl bg-stone-50 px-3 py-2 text-sm text-stone-800">Name: <span className="font-medium">{summaryName}</span></div>
@@ -295,7 +443,7 @@ export default function ChatPage() {
               <div className="rounded-xl bg-stone-50 px-3 py-2 text-sm text-stone-800">Daily Check-In: <span className="font-medium">{summaryCheckIn}</span></div>
               <div className="rounded-xl bg-stone-50 px-3 py-2 text-sm text-stone-800 sm:col-span-2">Caregiver: <span className="font-medium">{summaryCaregiver}</span></div>
             </div>
-          </div>
+          </div> */}
 
           <div className="mt-6 flex flex-col gap-4">
             {messages.map((m) => (
@@ -321,7 +469,9 @@ export default function ChatPage() {
               onMouseDown={startHoldToSpeak}
               onMouseUp={stopHoldToSpeak}
               onMouseLeave={stopHoldToSpeak}
-              className={`flex h-12 w-12 items-center justify-center rounded-full text-white shadow-sm ${voiceState === "listening" ? "bg-red-600" : "bg-stone-900"}`}
+              onTouchStart={(e) => { e.preventDefault(); startHoldToSpeak(); }}
+              onTouchEnd={(e) => { e.preventDefault(); stopHoldToSpeak(); }}
+              className={`flex h-12 w-12 items-center justify-center rounded-full text-white shadow-sm transition-all active:scale-95 ${voiceState === "listening" ? "bg-red-600 animate-pulse" : "bg-stone-900"}`}
             >🎤</button>
             <input
               value={input}
@@ -340,6 +490,7 @@ export default function ChatPage() {
           </div>
         </div>
       </footer>
+    </div>
     </div>
   );
 }

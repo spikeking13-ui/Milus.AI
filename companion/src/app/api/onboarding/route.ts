@@ -12,13 +12,31 @@ const ONBOARDING_SCHEMA = {
   userBirthday: "string",
   hobbies: "string",
   caregiverName: "string",
-  checkInTime: "string",
+//   checkInTime: "string",
 };
 
 export async function POST(req: Request) {
   try {
-    const { messages } = await req.json();
+    const { messages, passive } = await req.json();
     
+    if (passive) {
+      const passivePrompt = `You are a data extraction assistant. Based on the conversation history provided, extract the user's profile information into the following JSON schema:
+${JSON.stringify(ONBOARDING_SCHEMA, null, 2)}
+
+Return ONLY the JSON object. Do not include any other text or tags.`;
+
+      const response = await openai.chat.completions.create({
+        model: DEEPSEEK_MODEL,
+        messages: [
+          { role: 'system', content: passivePrompt },
+          ...messages
+        ],
+        stream: false,
+      });
+
+      return NextResponse.json(JSON.parse(response.choices[0].message.content || '{}'));
+    }
+
     const systemPrompt = `You are Milus, a warm and empathetic companion for seniors. 
 Your goal is to complete the user's onboarding by gathering the following information in a natural, conversational way.
 Do not ask all questions at once. Be patient and friendly.
@@ -32,11 +50,11 @@ INSTRUCTIONS:
 3. If the user provides multiple pieces of info, acknowledge them.
 4. When ALL fields in the schema are reasonably filled, provide a warm goodbye message.
 5. CRITICAL: At the very end of your final message, append the tag <ONBOARDING_END>.
-6. CRITICAL: In your final message, also include the completed JSON data for the user profile encapsulated in <USR_JSON> tags.
 
 Example final response:
-"It was wonderful getting to know you! I'm all set up now. Goodbye! <ONBOARDING_END> <USR_JSON>{"fullName": "...", ...}</USR_JSON>"`;
+"It was wonderful getting to know you! I'm all set up now. Goodbye! <ONBOARDING_END>"`;
 
+    console.log(`[${new Date().toISOString()}] Featherless Call: chat.completions.create (onboarding)`);
     const response = await openai.chat.completions.create({
       model: DEEPSEEK_MODEL,
       messages: [

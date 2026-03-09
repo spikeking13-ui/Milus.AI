@@ -18,7 +18,7 @@ export default function OnboardingPage() {
 
   useEffect(() => {
     if (messages.length === 0) {
-      handleSend("Hello! I'm Milus. I'd love to get to know you better so I can be a great companion. What's your full name?", true);
+      setMessages([{ role: "agent", text: "Hello! I'm Milus. I'd love to get to know you better so I can be a great companion. What's your full name?" }]);
     }
   }, []);
 
@@ -71,30 +71,46 @@ export default function OnboardingPage() {
         });
       }
 
-      // Check for onboarding end and JSON
+      // Check for onboarding end
       if (assistantText.includes("<ONBOARDING_END>")) {
-        const jsonMatch = assistantText.match(/<USR_JSON>(.*?)<\/USR_JSON>/s);
-        if (jsonMatch?.[1]) {
-          const userData = JSON.parse(jsonMatch[1]);
-          await fetch("/api/usr_data", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ type: "profile", data: userData }),
-          });
-          
-          // Save conversation
-          const convName = newMessages[0]?.text.slice(0, 10) || "onboarding";
-          await fetch("/api/usr_data", {
+        // Passively generate JSON
+        try {
+          const passiveRes = await fetch("/api/onboarding", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ 
-              type: "conversation", 
-              name: convName, 
-              data: { name: convName, messages: [...newMessages, { role: "agent", text: assistantText }] } 
+              messages: [...newMessages, { role: "agent", text: assistantText }].map(m => ({
+                role: m.role === "agent" ? "assistant" : "user",
+                content: m.text
+              })),
+              passive: true 
             }),
           });
+          
+          if (passiveRes.ok) {
+            const userData = await passiveRes.json();
+            await fetch("/api/usr_data", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ type: "profile", data: userData }),
+            });
+            
+            // Save conversation
+            const convName = "onboarding";
+            await fetch("/api/usr_data", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ 
+                type: "conversation", 
+                name: convName, 
+                data: { name: convName, messages: [...newMessages, { role: "agent", text: assistantText }] } 
+              }),
+            });
 
-          setTimeout(() => router.push("/chat"), 3000);
+            setTimeout(() => router.push("/chat"), 2000);
+          }
+        } catch (err) {
+          console.error("Passive extraction failed", err);
         }
       }
     } catch (error) {

@@ -1,0 +1,89 @@
+{
+  "name": "onboarding",
+  "messages": [
+    {
+      "role": "agent",
+      "text": "Hello! I'm Milus. I'd love to get to know you better so I can be a great companion. What's your full name?"
+    },
+    {
+      "role": "user",
+      "text": "Hello"
+    },
+    {
+      "role": "agent",
+      "text": "Hello! It's nice to meet you. Could you share your full name with me?"
+    },
+    {
+      "role": "user",
+      "text": "Robert"
+    },
+    {
+      "role": "agent",
+      "text": "Great to meet you, Robert! Is there a name you'd prefer to be called, or should I just call you Robert?"
+    },
+    {
+      "role": "user",
+      "text": "Sure"
+    },
+    {
+      "role": "agent",
+      "text": "Perfect, I'll call you Robert. How old are you, Robert?"
+    },
+    {
+      "role": "user",
+      "text": "90"
+    },
+    {
+      "role": "agent",
+      "text": "Nice to meet you, Robert! 90 years young, that's wonderful. \n\nI'd like to be able to send you some reminders or updates now and then. Could you share your email address with me?"
+    },
+    {
+      "role": "user",
+      "text": "rob@rob.com"
+    },
+    {
+      "role": "agent",
+      "text": "Thank you, Robert! I've got rob@rob.com. Now, let's talk about the people in your life. Could you tell me the name of a family member or friend you're close to, and what your relationship is to them?"
+    },
+    {
+      "role": "user",
+      "text": "Sister, deidre"
+    },
+    {
+      "role": "agent",
+      "text": "That's lovely that you're close with your sister, Deidre. About how often do you usually talk with her or see her?"
+    },
+    {
+      "role": "user",
+      "text": "Once a week"
+    },
+    {
+      "role": "agent",
+      "text": "Perfect, thank you. Now, when is your birthday, Robert? I'd love to help celebrate when the time comes!"
+    },
+    {
+      "role": "user",
+      "text": "09/09/1935"
+    },
+    {
+      "role": "agent",
+      "text": "Awesome, September 9th is a great date. Do you have any favorite hobbies or activities you enjoy doing in your free time?"
+    },
+    {
+      "role": "user",
+      "text": "None much"
+    },
+    {
+      "role": "agent",
+      "text": "Alright, Robert, that's perfectly fine. Sometimes the simple things are the best. \n\nLastly, so I have a complete picture, is there someone who helps you out regularly, like a caregiver or family member who checks in on you? You mentioned your sister Deidre; is she your main contact?"
+    },
+    {
+      "role": "user",
+      "text": "Yes"
+    },
+    {
+      "role": "agent",
+      "text": "Perfect, I'll note that Deidre is your caregiver. Thank you for sharing all of that with me, Robert.\n\nIt was wonderful getting to know you! I'm all set up now. I'll be here whenever you'd like to chat or if you need anything. Goodbye! <ONBOARDING_END>"
+    }
+  ]
+}

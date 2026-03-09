@@ -24,7 +24,7 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-gradient-to-b from-amber-50 via-orange-50 to-white p-6 sm:p-10">
       <div className="mx-auto max-w-3xl rounded-2xl border border-amber-200 bg-white p-6 shadow-sm sm:p-10">
-        <h1 className="text-3xl font-semibold">Milus.AI Companion</h1>
+        <h1 className="text-3xl font-semibold text-zinc-900">Milus.AI Companion</h1>
         <p className="mt-2 text-zinc-700">
           Personalized companion onboarding and demo shell.
         </p>

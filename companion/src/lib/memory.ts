@@ -55,7 +55,7 @@ const MEMORY_SCHEMA = {
 };
 
 async function callVoyage<T>(path: '/v1/embeddings' | '/v1/rerank', body: Record<string, unknown>) {
-  console.log(`Voyage Request [${path}]:`, JSON.stringify(body, null, 2));
+  console.log(`[${new Date().toISOString()}] Voyage Call: ${path}`);
   const response = await fetch(`https://api.voyageai.com${path}`, {
     method: 'POST',
     headers: {
@@ -73,21 +73,6 @@ async function callVoyage<T>(path: '/v1/embeddings' | '/v1/rerank', body: Record
 
   const data = await response.json();
 
-  // Log response to ./temp/logs
-  try {
-    const logDir = pathMod.join(process.cwd(), 'temp', 'logs');
-    if (!fs.existsSync(logDir)) {
-      fs.mkdirSync(logDir, { recursive: true });
-    }
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const logPath = pathMod.join(logDir, `voyage-${path.replace(/\//g, '-')}-${timestamp}.md`);
-    const logContent = `# Voyage Response [${path}]\n\n**Timestamp:** ${new Date().toISOString()}\n\n## Request Body\n\`\`\`json\n${JSON.stringify(body, null, 2)}\n\`\`\`\n\n## Response Data\n\`\`\`json\n${JSON.stringify(data, null, 2)}\n\`\`\``;
-    fs.writeFileSync(logPath, logContent);
-  } catch (logError) {
-    console.error('Failed to write log file:', logError);
-  }
-
-  console.log(`Voyage Response [${path}]:`, JSON.stringify(data, null, 2));
   return data as T;
 }
 
@@ -139,11 +124,10 @@ export async function ensureNamespaceExists() {
       distance_metric: DISTANCE_METRIC,
       schema: MEMORY_SCHEMA,
     };
-    console.log('Turbopuffer Init Write Payload:', JSON.stringify(writePayload, null, 2));
+    console.log(`[${new Date().toISOString()}] Turbopuffer Call: write (init)`);
     await ns.write(writePayload);
 
     const metadata = await ns.metadata();
-    console.log('Turbopuffer Metadata (after init):', JSON.stringify(metadata, null, 2));
     return metadata;
   }
 }
@@ -165,16 +149,15 @@ export async function storeMemory(text: string, role: MemoryRole) {
     schema: MEMORY_SCHEMA,
   };
 
-  console.log('Turbopuffer Store Write Payload:', JSON.stringify(writePayload, null, 2));
+  console.log(`[${new Date().toISOString()}] Turbopuffer Call: write (store)`);
   const result = await ns.write(writePayload);
-  console.log('Turbopuffer Store Result:', JSON.stringify(result, null, 2));
 }
 
 export async function retrieveMemory(
   query: string,
   rerankInstruction: string = 'Relevant conversation history',
-  queryThreshold: number = 0.7,
-  rerankThreshold: number = 0.7
+  queryThreshold: number = 0.3,
+  rerankThreshold: number = 0.3
 ) {
   await ensureNamespaceExists();
 
@@ -184,9 +167,8 @@ export async function retrieveMemory(
     include_attributes: ['text', 'role', 'created_at'],
   };
 
-  console.log('Turbopuffer Query Payload:', JSON.stringify(queryPayload, null, 2));
+  console.log(`[${new Date().toISOString()}] Turbopuffer Call: query`);
   const result = await ns.query(queryPayload);
-  console.log('Turbopuffer Query Result:', JSON.stringify(result, null, 2));
 
   const documentsWithMetadata = (result.rows ?? [])
     .filter((row) => {

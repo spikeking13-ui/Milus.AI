@@ -11,8 +11,6 @@ type MoodPoint = {
 
 type CaregiverContact = {
   name: string;
-  email: string;
-  phone: string;
 };
 
 const demoMood: MoodPoint[] = [
@@ -56,19 +54,18 @@ export default function CaregiverPage() {
   const lastActive = "5 minutes ago";
   const [moodTodayLabel, setMoodTodayLabel] = useState("🙂 Positive");
   const [weeklySummary, setWeeklySummary] = useState(
-    "Margaret had a good week. She talked about cooking for Sarah's visit and practiced Italian phrases.",
+    "Robert had a good week. He discussed family and his hobbies in cooking.",
   );
   const [topics, setTopics] = useState<string[]>([
     "Cooking",
     "Family",
-    "Italian Language",
-    "Gardening",
+    "Hobbies",
   ]);
   const [alerts] = useState<string[]>(["Mood decline detected", "Low engagement yesterday"]);
   const [mood] = useState<MoodPoint[]>(demoMood);
 
   const [caregivers, setCaregivers] = useState<CaregiverContact[]>([]);
-  const [draft, setDraft] = useState<CaregiverContact>({ name: "", email: "", phone: "" });
+  const [draft, setDraft] = useState<CaregiverContact>({ name: "" });
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [formError, setFormError] = useState("");
 
@@ -88,8 +85,6 @@ export default function CaregiverPage() {
 
       const caregiverSeed: CaregiverContact = {
         name: profile.caregiverName || "Not provided",
-        email: profile.caregiverEmail || "Not provided",
-        phone: profile.caregiverPhone || "Not provided",
       };
 
       setCaregivers([caregiverSeed]);
@@ -132,20 +127,12 @@ export default function CaregiverPage() {
 
   function validateCaregiver(input: CaregiverContact): string {
     if (!input.name.trim()) return "Please provide caregiver name.";
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.email.trim())) {
-      return "Please provide a valid caregiver email.";
-    }
-    if (input.phone.replace(/\D/g, "").length < 10) {
-      return "Please provide a valid 10-digit phone number.";
-    }
     return "";
   }
 
   function handleSaveCaregiver() {
     const normalized: CaregiverContact = {
       name: draft.name.trim(),
-      email: draft.email.trim(),
-      phone: formatPhone(draft.phone),
     };
 
     const err = validateCaregiver(normalized);
@@ -164,7 +151,7 @@ export default function CaregiverPage() {
       );
     }
 
-    setDraft({ name: "", email: "", phone: "" });
+    setDraft({ name: "" });
     setEditingIndex(null);
 
     // Backend integration placeholder:
@@ -182,7 +169,7 @@ export default function CaregiverPage() {
     setCaregivers((prev) => prev.filter((_, idx) => idx !== index));
 
     if (editingIndex === index) {
-      setDraft({ name: "", email: "", phone: "" });
+      setDraft({ name: "" });
       setEditingIndex(null);
       setFormError("");
     }
@@ -257,8 +244,6 @@ export default function CaregiverPage() {
             {caregivers.map((c, i) => (
               <div key={i} className="flex flex-wrap gap-6 text-stone-700">
                 <div><span className="text-stone-400 text-xs block uppercase">Name</span> {c.name}</div>
-                <div><span className="text-stone-400 text-xs block uppercase">Email</span> {c.email}</div>
-                <div><span className="text-stone-400 text-xs block uppercase">Phone</span> {c.phone}</div>
               </div>
             ))}
           </div>
