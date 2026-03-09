@@ -72,7 +72,6 @@ export default function ChatPage() {
   const [preferredName, setPreferredName] = useState("friend");
   const [voiceMode, setVoiceMode] = useState<"speak" | "text">("speak");
   const [mode, setMode] = useState<ChatMode>("companion");
-  const [voiceState, setVoiceState] = useState<VoiceState>("idle");
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [isThinking, setIsThinking] = useState(false);
@@ -184,7 +183,6 @@ export default function ChatPage() {
 
     setIsThinking(true);
     setThinkingText(THINKING_MESSAGES[Math.floor(Math.random() * THINKING_MESSAGES.length)]);
-    setVoiceState("thinking");
     try {
       const response = await fetch("/api/chat", {
         method: "POST",
@@ -247,14 +245,10 @@ export default function ChatPage() {
 
   const speak = (text: string) => {
     if (voiceMode !== "speak" || typeof window === "undefined" || !window.speechSynthesis) {
-      setVoiceState("idle");
       return;
     }
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text.replace(/<[^>]*>/g, ""));
-    utterance.onend = () => setVoiceState("idle");
-    utterance.onerror = () => setVoiceState("idle");
-    setVoiceState("speaking");
     window.speechSynthesis.speak(utterance);
   };
 
@@ -273,7 +267,6 @@ export default function ChatPage() {
     
     setIsThinking(true);
     setThinkingText(THINKING_MESSAGES[Math.floor(Math.random() * THINKING_MESSAGES.length)]);
-    setVoiceState("thinking");
 
     try {
       const response = await fetch("/api/chat", {
@@ -316,7 +309,7 @@ export default function ChatPage() {
     }
   };
 
-  const startHoldToSpeak = () => {
+  const startHoldToSpeak = async () => {
     if (isThinking) return;
     const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
     if (!SpeechRecognition) {
@@ -324,6 +317,16 @@ export default function ChatPage() {
       return;
     }
     
+    // Explicitly request microphone permission if not already granted
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach(track => track.stop()); // Stop the stream immediately, we just wanted the permission
+    } catch (err: any) {
+      console.error("Microphone permission denied", err);
+      setVoiceError("Microphone access is required for speech-to-text.");
+      return;
+    }
+
     if (recognitionRef.current) {
       try {
         recognitionRef.current.stop();
@@ -348,38 +351,44 @@ export default function ChatPage() {
 
     recognitionRef.current!.onerror = (event: any) => {
       console.error("Speech recognition error", event.error);
-      if (event.error !== 'aborted') {
+      if (event.error === 'not-allowed') {
+        setVoiceError("Microphone access denied. Please enable it in your browser settings.");
+        // setVoiceState("idle");
+      } else if (event.error === 'network') {
+        setVoiceError("Network error. Please check your internet connection.");
+        // setVoiceState("idle");
+      } else if (event.error !== 'aborted') {
         setVoiceError(`Error: ${event.error}`);
-        setVoiceState("idle");
+        // setVoiceState("idle");
       }
     };
 
     recognitionRef.current!.onend = () => {
       // Only reset if we're not in the middle of a send
-      if (voiceState === "listening") {
-        setVoiceState("idle");
-      }
+      // if (voiceState === "listening") {
+      //   // setVoiceState("idle");
+      // }
     };
 
-    setVoiceState("listening");
+    // setVoiceState("listening");
     try {
       recognitionRef.current!.start();
     } catch (e) {
       console.error("Failed to start recognition", e);
-      setVoiceState("idle");
+      // setVoiceState("idle");
     }
   };
 
   const stopHoldToSpeak = () => {
-    if (recognitionRef.current && voiceState === "listening") {
-      setVoiceState("idle");
-      recognitionRef.current.stop();
-      const finalTranscript = transcriptRef.current;
-      if (finalTranscript.trim()) {
-        handleSend(finalTranscript);
-      }
-      transcriptRef.current = "";
-    }
+    // if (recognitionRef.current && voiceState === "listening") {
+    //   setVoiceState("idle");
+    //   recognitionRef.current.stop();
+    //   const finalTranscript = transcriptRef.current;
+    //   if (finalTranscript.trim()) {
+    //     handleSend(finalTranscript);
+    //   }
+    //   transcriptRef.current = "";
+    // }
   };
 
   const modeConfig = useMemo(() => modeMeta[mode], [mode]);
@@ -465,14 +474,6 @@ export default function ChatPage() {
       <footer className={STYLES.footer}>
         <div className={STYLES.containerMaxWidth}>
           <div className="flex items-center gap-2">
-            <button
-              onMouseDown={startHoldToSpeak}
-              onMouseUp={stopHoldToSpeak}
-              onMouseLeave={stopHoldToSpeak}
-              onTouchStart={(e) => { e.preventDefault(); startHoldToSpeak(); }}
-              onTouchEnd={(e) => { e.preventDefault(); stopHoldToSpeak(); }}
-              className={`flex h-12 w-12 items-center justify-center rounded-full text-white shadow-sm transition-all active:scale-95 ${voiceState === "listening" ? "bg-red-600 animate-pulse" : "bg-stone-900"}`}
-            >🎤</button>
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -482,7 +483,6 @@ export default function ChatPage() {
             />
             <button onClick={() => handleSend()} className={STYLES.buttonPrimary}>Send</button>
           </div>
-          {voiceError && <p className="mt-2 text-sm text-red-700">{voiceError}</p>}
           <div className="mt-3 flex flex-wrap gap-2">
             {["Family", "Cooking", "Language", "Memory"].map(t => (
               <button key={t} onClick={() => handleSend(`Let's talk about ${t.toLowerCase()}`)} className={STYLES.buttonSecondary + " text-xs"}>{t}</button>
