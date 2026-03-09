@@ -4,7 +4,7 @@ export const ONBOARDING_FORM_KEY = "milus_onboarding_form_v1";
 export const AGENT_PROFILE_KEY = "milus_agent_profile_v1"; 
 export const ONBOARDING_COMPLETE_KEY = "milus_onboarding_complete_v1";
 
-export function saveOnboardingForm(form: OnboardingForm): void {  
+export function saveOnboardingForm(form: OnboardingForm): void {
   localStorage.setItem(ONBOARDING_FORM_KEY, JSON.stringify(form));
 }
 
